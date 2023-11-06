@@ -444,6 +444,7 @@ struct whisper_hparams {
     int32_t n_text_head   = 6;
     int32_t n_text_layer  = 4;
     int32_t n_mels        = 80;
+    int32_t n_langs       = 99;
     int32_t ftype         = 1;
     float   eps           = 1e-5f;
 };
@@ -923,6 +924,12 @@ static bool whisper_model_load(struct whisper_model_loader * loader, whisper_con
 
         assert(hparams.n_text_state == hparams.n_audio_state);
 
+        if (hparams.n_mels == 80) {
+            hparams.n_langs = 99;
+        } else {
+            hparams.n_langs = 100;
+        }
+
         if (hparams.n_audio_layer == 4) {
             model.type = e_model::MODEL_TINY;
         }
@@ -967,6 +974,7 @@ static bool whisper_model_load(struct whisper_model_loader * loader, whisper_con
         log("%s: n_text_head   = %d\n", __func__, hparams.n_text_head);
         log("%s: n_text_layer  = %d\n", __func__, hparams.n_text_layer);
         log("%s: n_mels        = %d\n", __func__, hparams.n_mels);
+        log("%s: n_langs       = %d\n", __func__, hparams.n_langs);
         log("%s: ftype         = %d\n", __func__, model.hparams.ftype);
         log("%s: qntvr         = %d\n", __func__, qntvr);
         log("%s: type          = %d\n", __func__, model.type);
@@ -3404,14 +3412,19 @@ int whisper_tokenize(struct whisper_context * ctx, const char * text, whisper_to
     return res.size();
 }
 
-int whisper_lang_max_id() {
+int whisper_lang_max_id(int n_langs) {
     auto max_id = 0;
+    auto count = 0;
     for (const auto & kv : g_lang) {
+        if (count > n_langs) {
+            break;
+        }
         max_id = std::max(max_id, kv.second.first);
+        ++count;
     }
 
     return max_id;
-}
+} 
 
 int whisper_lang_id(const char * lang) {
     if (!g_lang.count(lang)) {
@@ -3472,9 +3485,15 @@ int whisper_lang_auto_detect_with_state(
     auto & logits_id = state->logits_id;
     logits_id.clear();
 
+    int count = 0;
     for (const auto & kv : g_lang) {
+        if (count >= ctx->model.hparams.n_langs) {
+            break;
+        }
+        
         const auto token_lang = whisper_token_lang(ctx, kv.second.first);
         logits_id.emplace_back(state->logits[token_lang], kv.second.first);
+        ++count;
     }
 
     // sort descending
@@ -4473,7 +4492,7 @@ int whisper_full_with_state(
 
     // auto-detect language if not specified
     if (params.language == nullptr || strlen(params.language) == 0 || strcmp(params.language, "auto") == 0 || params.detect_language) {
-        std::vector<float> probs(whisper_lang_max_id() + 1, 0.0f);
+        std::vector<float> probs(whisper_lang_max_id(ctx->model.hparams.n_langs) + 1, 0.0f);
 
         const auto lang_id = whisper_lang_auto_detect_with_state(ctx, state, 0, params.n_threads, probs.data());
         if (lang_id < 0) {
