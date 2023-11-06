@@ -195,7 +195,7 @@ enum e_model {
 
 static const std::map<std::string, std::pair<int, std::string>> g_lang = {
     { "en",  { 0,  "english",         } },
-    { "zh",  { 1,  "chinese",         } },
+    { "zh",  { 1,  "mandarin",         } },
     { "de",  { 2,  "german",          } },
     { "es",  { 3,  "spanish",         } },
     { "ru",  { 4,  "russian",         } },
@@ -293,6 +293,7 @@ static const std::map<std::string, std::pair<int, std::string>> g_lang = {
     { "ba",  { 96,  "bashkir",        } },
     { "jw",  { 97,  "javanese",       } },
     { "su",  { 98,  "sundanese",      } },
+    { "yue", { 99,  "cantonese"       } },
 };
 
 static const size_t MB = 1ull*1024*1024;
