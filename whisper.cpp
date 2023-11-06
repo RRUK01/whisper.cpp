@@ -3282,7 +3282,7 @@ void whisper_free_params(struct whisper_full_params * params) {
 }
 
 int whisper_pcm_to_mel_with_state(struct whisper_context * ctx, struct whisper_state * state, const float * samples, int n_samples, int n_threads) {
-    if (!log_mel_spectrogram(*state, samples, n_samples, WHISPER_SAMPLE_RATE, WHISPER_N_FFT, WHISPER_HOP_LENGTH, WHISPER_N_MEL, n_threads, ctx->model.filters, false, state->mel)) {
+    if (!log_mel_spectrogram(*state, samples, n_samples, WHISPER_SAMPLE_RATE, WHISPER_N_FFT, WHISPER_HOP_LENGTH, ctx->model.hparams.n_mels, n_threads, ctx->model.filters, false, state->mel)) {
         log("%s: failed to compute mel spectrogram\n", __func__);
         return -1;
     }
@@ -3296,7 +3296,7 @@ int whisper_pcm_to_mel(struct whisper_context * ctx, const float * samples, int 
 
 // same as whisper_pcm_to_mel, but applies a Phase Vocoder to speed up the audio x2 (PV without phase lock is not good)
 int whisper_pcm_to_mel_phase_vocoder_with_state(struct whisper_context * ctx, struct whisper_state * state, const float * samples, int n_samples, int n_threads) {
-    if (!log_mel_spectrogram(*state, samples, n_samples, WHISPER_SAMPLE_RATE, 2 * WHISPER_N_FFT, 2 * WHISPER_HOP_LENGTH, WHISPER_N_MEL, n_threads, ctx->model.filters, false, state->mel)) {
+    if (!log_mel_spectrogram(*state, samples, n_samples, WHISPER_SAMPLE_RATE, 2 * WHISPER_N_FFT, 2 * WHISPER_HOP_LENGTH, ctx->model.hparams.n_mels, n_threads, ctx->model.filters, false, state->mel)) {
         log("%s: failed to compute mel spectrogram\n", __func__);
         return -1;
     }
@@ -3324,10 +3324,6 @@ int whisper_set_mel_with_state(
                    const float * data,
                            int   n_len,
                            int   n_mel) {
-    if (n_mel != WHISPER_N_MEL) {
-        log("%s: invalid number of mel bands: %d (expected %d)\n", __func__, n_mel, WHISPER_N_MEL);
-        return -1;
-    }
 
     state->mel.n_len     = n_len;
     state->mel.n_len_org = n_len;
